@@ -1,0 +1,22 @@
+[MAIN]
+py-version = 3.12
+extension-pkg-allow-list = sqlalchemy
+
+[FORMAT]
+max-line-length = 128
+
+[MESSAGES CONTROL]
+disable =
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    duplicate-code,
+
+[BASIC]
+good-names = i,j,k,ex,Run,_,id,db,df
+
+[DESIGN]
+max-args = 12
+max-attributes = 16
+max-positional-arguments = 8
