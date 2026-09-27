@@ -1,43 +1,44 @@
 from flask import Blueprint, current_app, jsonify, request
 from pydantic import ValidationError
 
-from app.application.dto.recipe import (CreateRecipeDTO, SaveRecipeDTO,
-                                        UpdateRecipeDTO)
-from app.domain.exceptions import (ConflictError, NotFoundError,
-                                   PersistenceError, UnauthorizedError)
+from app.application.dto.draft import (CreateDraftDTO,
+                                        UpdateDraftDTO)
+from app.domain.exceptions import (ConflictError, ExternalServiceError,
+                                   NotFoundError, PersistenceError,
+                                   UnauthorizedError)
 
-from ..schemas import (CreateRecipeSchema, PaginationSchema, SaveRecipeSchema,
-                       UpdateRecipeSchema)
+from ..schemas import (CreateDraftSchema, PaginationSchema,
+                       UpdateDraftSchema)
 
-recipes_bp = Blueprint('recipes_bp', __name__)
-
-
-def get_recipe_service():
-    return current_app.extensions['recipe_service']
+drafts_bp = Blueprint('drafts_bp', __name__)
 
 
-@recipes_bp.get('/')
+def get_draft_service():
+    return current_app.extensions['draft_service']
+
+
+@drafts_bp.get('/')
 def get_all():
-    recipes = get_recipe_service().get_all()
-    response = [recipe.model_dump(mode="json") for recipe in recipes]
+    drafts = get_draft_service().get_all()
+    response = [draft.model_dump(mode="json") for draft in drafts]
     return jsonify(response), 200
 
 
-@recipes_bp.post('/')
-def create_recipe():
+@drafts_bp.post('/')
+def create_draft():
     data = request.get_json(silent=True) or {}
     user_id = request.headers.get('user-id')
     try:
-        validated_recipe = CreateRecipeSchema.model_validate(data)
-        dto = CreateRecipeDTO.model_validate({
-            **validated_recipe.model_dump(),
+        validated_draft = CreateDraftSchema.model_validate(data)
+        dto = CreateDraftDTO.model_validate({
+            **validated_draft.model_dump(),
             'user_id': user_id,
         })
     except ValidationError as e:
         return jsonify({'errors': e.errors()}), 422
 
     try:
-        created_recipe = get_recipe_service().create(dto)
+        created_draft = get_draft_service().create(dto)
     except ConflictError as e:
         return (
             jsonify(
@@ -65,11 +66,23 @@ def create_recipe():
             jsonify(
                 {
                     "error": "internal_error",
-                    "message": "Falha ao validar dados internos da receita.",
-                    "code": "RECIPE_SERVICE_VALIDATION_ERROR",
+                    "message": "Falha ao validar dados internos do rascunho.",
+                    "code": "DRAFT_SERVICE_VALIDATION_ERROR",
                 }
             ),
             500,
+        )
+    except ExternalServiceError as e:
+        status = 422 if e.code == "UNREADABLE_FILE" else 502
+        return (
+            jsonify(
+                {
+                    "error": "external_service_error",
+                    "message": e.message,
+                    "code": e.code,
+                }
+            ),
+            status,
         )
     except PersistenceError as e:
         return (
@@ -83,34 +96,19 @@ def create_recipe():
             500,
         )
 
-    response = created_recipe.model_dump(mode="json")
+    response = created_draft.model_dump(mode="json")
     return jsonify(response), 201
 
 
-@recipes_bp.get('/discover')
-def discover_recipes():
-    user_id = request.headers.get('user-id')
-    try:
-        validated = PaginationSchema.model_validate(dict(request.args))
-    except ValidationError as e:
-        return jsonify({"errors": e.errors()}), 422
-
-    result = get_recipe_service().get_all_public(
-        user_id,
-        **validated.model_dump(),
-    )
-    return jsonify(result.model_dump(mode="json")), 200
-
-
-@recipes_bp.get('/author/<string:author_id>')
-def get_author_recipes(author_id: str):
+@drafts_bp.get('/author/<string:author_id>')
+def get_author_drafts(author_id: str):
     try:
         validated = PaginationSchema.model_validate(dict(request.args))
     except ValidationError as e:
         return jsonify({"errors": e.errors()}), 422
 
     try:
-        result = get_recipe_service().get_all_by_author_id(
+        result = get_draft_service().get_all_by_author_id(
             author_id, **validated.model_dump()
         )
     except NotFoundError as e:
@@ -128,74 +126,10 @@ def get_author_recipes(author_id: str):
     return jsonify(result.model_dump(mode="json")), 200
 
 
-@recipes_bp.post('/save')
-def save_recipe():
-    data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+@drafts_bp.get('/<string:draft_id>')
+def get_draft_by_id(draft_id: str):
     try:
-        validated_recipe = SaveRecipeSchema.model_validate(data)
-        dto = SaveRecipeDTO.model_validate({
-            **validated_recipe.model_dump(),
-            "user_id": user_id,
-        })
-    except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
-
-    try:
-        saved_recipe = get_recipe_service().save(dto)
-    except NotFoundError as e:
-        return (
-            jsonify(
-                {
-                    "error": "not_found",
-                    "message": e.message,
-                    "code": e.code,
-                }
-            ),
-            404,
-        )
-    except ConflictError as e:
-        return (
-            jsonify(
-                {
-                    "error": "conflict",
-                    "message": e.message,
-                    "code": e.code,
-                }
-            ),
-            409,
-        )
-    except ValidationError:
-        return (
-            jsonify(
-                {
-                    "error": "internal_error",
-                    "message": "Falha ao validar dados internos da receita.",
-                    "code": "RECIPE_SERVICE_VALIDATION_ERROR",
-                }
-            ),
-            500,
-        )
-    except PersistenceError as e:
-        return (
-            jsonify(
-                {
-                    "error": "persistence_error",
-                    "message": e.message,
-                    "code": e.code,
-                }
-            ),
-            500,
-        )
-
-    response = saved_recipe.model_dump(mode="json")
-    return jsonify(response), 201
-
-
-@recipes_bp.get('/<string:recipe_id>')
-def get_recipe_by_id(recipe_id: str):
-    try:
-        recipe = get_recipe_service().get_by_id(recipe_id)
+        draft = get_draft_service().get_by_id(draft_id)
     except NotFoundError as e:
         return (
             jsonify(
@@ -208,22 +142,22 @@ def get_recipe_by_id(recipe_id: str):
             404,
         )
 
-    response = recipe.model_dump(mode="json")
+    response = draft.model_dump(mode="json")
     return jsonify(response), 200
 
 
-@recipes_bp.put('/<string:recipe_id>')
-def update_recipe(recipe_id: str):
+@drafts_bp.put('/<string:draft_id>')
+def update_draft(draft_id: str):
     data = request.get_json(silent=True) or {}
     user_id = request.headers.get('user-id')
     try:
-        validated_recipe = UpdateRecipeSchema.model_validate(data)
-        dto = UpdateRecipeDTO.model_validate(validated_recipe.model_dump())
+        validated_draft = UpdateDraftSchema.model_validate(data)
+        dto = UpdateDraftDTO.model_validate(validated_draft.model_dump())
     except ValidationError as e:
         return jsonify({'errors': e.errors()}), 422
 
     try:
-        updated_recipe = get_recipe_service().update(recipe_id, user_id, dto)
+        updated_draft = get_draft_service().update(draft_id, user_id, dto)
     except NotFoundError as e:
         return (
             jsonify(
@@ -262,8 +196,8 @@ def update_recipe(recipe_id: str):
             jsonify(
                 {
                     "error": "internal_error",
-                    "message": "Falha ao validar dados internos da receita.",
-                    "code": "RECIPE_SERVICE_VALIDATION_ERROR",
+                    "message": "Falha ao validar dados internos do rascunho.",
+                    "code": "DRAFT_SERVICE_VALIDATION_ERROR",
                 }
             ),
             500,
@@ -280,15 +214,15 @@ def update_recipe(recipe_id: str):
             500,
         )
 
-    response = updated_recipe.model_dump(mode="json")
+    response = updated_draft.model_dump(mode="json")
     return jsonify(response), 200
 
 
-@recipes_bp.delete('/<string:recipe_id>')
-def delete_recipe(recipe_id: str):
+@drafts_bp.delete('/<string:draft_id>')
+def delete_draft(draft_id: str):
     user_id = request.headers.get('user-id')
     try:
-        get_recipe_service().delete(recipe_id, user_id)
+        get_draft_service().delete(draft_id, user_id)
     except NotFoundError as e:
         return (
             jsonify(

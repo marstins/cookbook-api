@@ -1,3 +1,5 @@
+from app.interfaces.http.schemas.drafts import (CreateDraftSchema,
+                                                UpdateDraftSchema)
 from app.interfaces.http.schemas.auth import LoginRequestSchema
 from app.interfaces.http.schemas.pagination import (
     PaginatedRecipeListResponseSchema, PaginationResponseSchema,
@@ -26,4 +28,6 @@ __all__ = [
     "PaginationSchema",
     "PaginationResponseSchema",
     "PaginatedRecipeListResponseSchema",
+    "CreateDraftSchema",
+    "UpdateDraftSchema",
 ]

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from app.domain.models.aggregates.recipe.recipe import RecipePublic
+from app.domain.models.aggregates.draft.draft import DraftPublic
 
 
 class PaginationMetaDTO(BaseModel):
@@ -14,6 +15,11 @@ class PaginationMetaDTO(BaseModel):
 
 class PaginatedRecipesDTO(BaseModel):
     items: list[RecipePublic]
+    pagination: PaginationMetaDTO
+
+
+class PaginatedDraftsDTO(BaseModel):
+    items: list[DraftPublic]
     pagination: PaginationMetaDTO
 
 

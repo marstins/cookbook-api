@@ -8,8 +8,9 @@ def build_openapi_spec() -> dict:
             "title": "Cookbook API",
             "version": "1.0.0",
             "description": (
-                "Cookbook API: serviço HTTP de usuários, autenticação e receitas "
-                "(públicas, privadas e descoberta)."
+                "Cookbook API: serviço HTTP de usuários, autenticação, receitas "
+                "(públicas, privadas e descoberta) e rascunhos importados por "
+                "foto via OCR.space."
             ),
         },
         "servers": [{"url": "/", "description": "Mesma origem da aplicação Flask"}],
@@ -18,6 +19,7 @@ def build_openapi_spec() -> dict:
             {"name": "Usuários"},
             {"name": "Autenticação"},
             {"name": "Receitas"},
+            {"name": "Rascunhos"},
         ],
         "paths": _paths(),
         "components": {
@@ -168,6 +170,71 @@ def _schemas() -> dict:
                 "items": {
                     "type": "array",
                     "items": {"$ref": "#/components/schemas/RecipePublic"},
+                },
+                "pagination": {"$ref": "#/components/schemas/PaginationMeta"},
+            },
+            "required": ["items", "pagination"],
+        },
+        "DraftIngredient": {
+            "type": "object",
+            "properties": {"description": {"type": "string"}},
+            "required": ["description"],
+        },
+        "DraftPublic": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "author_id": {"type": "string"},
+                "title": {"type": "string", "nullable": True},
+                "description": {"type": "string", "nullable": True},
+                "instructions": {"type": "string", "nullable": True},
+                "ingredients": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/DraftIngredient"},
+                },
+                "is_draft": {"type": "boolean", "enum": [True]},
+                "created_at": {"type": "string", "format": "date-time"},
+            },
+            "required": ["id", "author_id", "ingredients", "is_draft", "created_at"],
+        },
+        "CreateDraftBody": {
+            "type": "object",
+            "properties": {
+                "source_data": {
+                    "type": "string",
+                    "description": (
+                        "Arquivo da receita como data URI em base64. Tipos aceitos: "
+                        "image/jpeg, image/png e application/pdf. Arquivo de até 1 MiB."
+                    ),
+                    "pattern": r"^data:(image/jpeg|image/png|application/pdf);base64,[A-Za-z0-9+/]+=*$",
+                    "example": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
+                },
+            },
+            "required": ["source_data"],
+        },
+        "UpdateDraftBody": {
+            "type": "object",
+            "description": (
+                "Sem os limites de receita, porque o texto do OCR costuma passar "
+                "deles. Os limites de receita valem ao criar a receita a partir do rascunho."
+            ),
+            "properties": {
+                "title": {"type": "string", "nullable": True, "maxLength": 255},
+                "description": {"type": "string", "nullable": True, "maxLength": 255},
+                "instructions": {"type": "string", "nullable": True},
+                "ingredients": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/DraftIngredient"},
+                },
+            },
+            "required": ["ingredients"],
+        },
+        "PaginatedDrafts": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/DraftPublic"},
                 },
                 "pagination": {"$ref": "#/components/schemas/PaginationMeta"},
             },
@@ -497,6 +564,7 @@ def _paths() -> dict:
             "put": {
                 "tags": ["Receitas"],
                 "summary": "Atualizar receita",
+                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -507,6 +575,10 @@ def _paths() -> dict:
                     "200": {
                         "description": "OK",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RecipePublic"}}},
+                    },
+                    "401": {
+                        "description": "O usuário não é o autor da receita",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Não encontrada",
@@ -525,12 +597,163 @@ def _paths() -> dict:
             "delete": {
                 "tags": ["Receitas"],
                 "summary": "Excluir receita",
+                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
                 "responses": {
                     "204": {"description": "Sem corpo"},
+                    "401": {
+                        "description": "O usuário não é o autor da receita",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
+                    },
                     "404": {
                         "description": "Não encontrada",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
+                },
+            },
+        },
+        **_draft_paths(),
+    }
+
+
+def _error(description: str) -> dict:
+    return {
+        "description": description,
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
+    }
+
+
+def _validation_error(description: str = "Validação") -> dict:
+    return {
+        "description": description,
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ValidationErrorBody"}}},
+    }
+
+
+def _draft_body(description: str) -> dict:
+    return {
+        "description": description,
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DraftPublic"}}},
+    }
+
+
+def _draft_paths() -> dict:
+    return {
+        "/drafts/": {
+            "get": {
+                "tags": ["Rascunhos"],
+                "summary": "Listar todos os rascunhos",
+                "responses": {
+                    "200": {
+                        "description": "Lista",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/DraftPublic"}},
+                            }
+                        },
+                    },
+                },
+            },
+            "post": {
+                "tags": ["Rascunhos"],
+                "summary": "Importar receita por foto ou PDF",
+                "description": (
+                    "Envia o arquivo ao OCR.space e cria um rascunho com o texto extraído. "
+                    "Se o texto tiver os cabeçalhos \"Ingredientes\" e \"Modo de preparo\", "
+                    "título, ingredientes e instruções são separados; caso contrário, o "
+                    "texto inteiro vai para instructions."
+                ),
+                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {"schema": {"$ref": "#/components/schemas/CreateDraftBody"}},
+                    },
+                },
+                "responses": {
+                    "201": _draft_body("Rascunho criado"),
+                    "404": _error("Usuário não encontrado"),
+                    "409": _error("Conflito de integridade"),
+                    "413": _error("Corpo da requisição acima do limite (MAX_CONTENT_LENGTH)"),
+                    "422": {
+                        "description": (
+                            "Payload inválido (tipo ou formato do data URI) ou arquivo "
+                            "sem texto legível (code UNREADABLE_FILE)"
+                        ),
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {"$ref": "#/components/schemas/ValidationErrorBody"},
+                                        {"$ref": "#/components/schemas/HttpError"},
+                                    ]
+                                }
+                            }
+                        },
+                    },
+                    "502": _error("Falha ou indisponibilidade do OCR.space"),
+                },
+            },
+        },
+        "/drafts/author/{author_id}": {
+            "parameters": [
+                {"name": "author_id", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"$ref": "#/components/parameters/PageQuery"},
+                {"$ref": "#/components/parameters/PerPageQuery"},
+            ],
+            "get": {
+                "tags": ["Rascunhos"],
+                "summary": "Rascunhos do autor (paginado)",
+                "responses": {
+                    "200": {
+                        "description": "Página",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaginatedDrafts"}}},
+                    },
+                    "404": _error("Usuário não encontrado"),
+                    "422": _validation_error("Query inválida"),
+                },
+            },
+        },
+        "/drafts/{draft_id}": {
+            "parameters": [{"name": "draft_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+            "get": {
+                "tags": ["Rascunhos"],
+                "summary": "Obter rascunho",
+                "responses": {
+                    "200": _draft_body("OK"),
+                    "404": _error("Não encontrado"),
+                },
+            },
+            "put": {
+                "tags": ["Rascunhos"],
+                "summary": "Atualizar rascunho",
+                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {"schema": {"$ref": "#/components/schemas/UpdateDraftBody"}},
+                    },
+                },
+                "responses": {
+                    "200": _draft_body("OK"),
+                    "401": _error("O usuário não é o autor do rascunho"),
+                    "404": _error("Não encontrado"),
+                    "409": _error("Integridade"),
+                    "422": _validation_error(),
+                },
+            },
+            "delete": {
+                "tags": ["Rascunhos"],
+                "summary": "Excluir rascunho",
+                "description": (
+                    "Também usado pelo front logo depois de POST /recipes/ quando o "
+                    "rascunho vira receita."
+                ),
+                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "responses": {
+                    "204": {"description": "Sem corpo"},
+                    "401": _error("O usuário não é o autor do rascunho"),
+                    "404": _error("Não encontrado"),
+                    "409": _error("Integridade"),
                 },
             },
         },

@@ -6,7 +6,7 @@ from app.application.dto.recipe import (CreateRecipeDTO, SaveRecipeDTO,
                                         UpdateRecipeDTO)
 from app.application.mappers.recipe_mapper import RecipePublicMapper
 from app.domain.exceptions import (ConflictError, NotFoundError,
-                                   PersistenceError)
+                                   PersistenceError, UnauthorizedError)
 from app.domain.models.aggregates.recipe.ingredient import IngredientCreate
 from app.domain.models.aggregates.recipe.recipe import (RecipeCreate,
                                                         RecipePublic,
@@ -63,7 +63,7 @@ class RecipeService:
             recipe = self._recipe_repository.get_by_id(created_recipe.id)
             if recipe is None:
                 raise NotFoundError(
-                    "Receita não encontrada",
+                    "Receita não encontrada.",
                     code="RECIPE_NOT_FOUND",
             )
             db.session.commit()
@@ -109,17 +109,22 @@ class RecipeService:
         recipe = self._recipe_repository.get_by_id(recipe_id)
         if recipe is None:
             raise NotFoundError(
-                "Receita não encontrada",
+                "Receita não encontrada.",
                 code="RECIPE_NOT_FOUND",
             )
         return self._recipe_public_mapper.map_to_public(recipe)
 
-    def update(self, recipe_id: str, data: UpdateRecipeDTO) -> RecipePublic:
+    def update(self, recipe_id: str, user_id: str, data: UpdateRecipeDTO) -> RecipePublic:
         recipe = self._recipe_repository.get_by_id(recipe_id)
         if recipe is None:
             raise NotFoundError(
-                "Receita não encontrada",
+                "Receita não encontrada.",
                 code="RECIPE_NOT_FOUND",
+            )
+        if recipe.author_id != user_id:
+            raise UnauthorizedError(
+                "Você não é o criador dessa receita.",
+                code="RECIPE_NOT_OWNED"
             )
         try:
             recipe_to_update = RecipeUpdate(
@@ -142,7 +147,7 @@ class RecipeService:
             if updated_recipe is None:
                 db.session.rollback()
                 raise NotFoundError(
-                    "Receita não encontrada",
+                    "Receita não encontrada.",
                     code="RECIPE_NOT_FOUND_AFTER_UPDATE",
                 )
             db.session.commit()
@@ -161,15 +166,20 @@ class RecipeService:
 
         return self._recipe_public_mapper.map_to_public(updated_recipe)
 
-    def delete(self, recipe_id: str) -> None:
+    def delete(self, recipe_id: str, user_id: str) -> None:
         recipe = self._recipe_repository.get_by_id(recipe_id)
         if recipe is None:
             raise NotFoundError(
-                "Receita não encontrada",
+                "Receita não encontrada.",
                 code="RECIPE_NOT_FOUND",
             )
+        if recipe.author_id != user_id:
+            raise UnauthorizedError(
+                "Você não é o criador dessa receita.",
+                code="RECIPE_NOT_OWNED"
+            )
         try:
-            self._ingredient_repository.delete_by_recipe_id(recipe_id)
+            self._ingredient_repository.delete_recipe_id(recipe_id)
             self._recipe_repository.nullify_original_recipe(recipe_id)
             self._recipe_repository.delete(recipe_id)
             db.session.commit()
@@ -256,7 +266,7 @@ class RecipeService:
             if saved_recipe is None:
                 db.session.rollback()
                 raise NotFoundError(
-                    "Receita não encontrada",
+                    "Receita não encontrada.",
                     code="RECIPE_NOT_FOUND_AFTER_SAVE",
                 )
             db.session.commit()
