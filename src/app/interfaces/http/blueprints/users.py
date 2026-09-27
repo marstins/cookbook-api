@@ -7,6 +7,7 @@ from app.domain.exceptions import ConflictError, NotFoundError
 
 from ..schemas import (CreateUserSchema, UpdateUserNameSchema,
                        UpdateUserPasswordSchema, UserResponseSchema)
+from ..validation import validation_error_response
 
 users_bp = Blueprint('users_bp', __name__)
 
@@ -45,7 +46,7 @@ def create_user():
         validated_user = CreateUserSchema.model_validate(data)
         dto = CreateUserDTO.model_validate(validated_user.model_dump())
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         created_user = get_user_service().create(dto)
@@ -116,7 +117,7 @@ def update_user_password(user_id: str):
         validated = UpdateUserPasswordSchema.model_validate(data)
         dto = UpdateUserPasswordDTO.model_validate(validated.model_dump())
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         updated_user = get_user_service().update_password(user_id, dto)
@@ -167,7 +168,7 @@ def update_user_name(user_id: str):
         validated = UpdateUserNameSchema.model_validate(data)
         dto = UpdateUserNameDTO.model_validate(validated.model_dump())
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         updated_user = get_user_service().update_name(user_id, dto)

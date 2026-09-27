@@ -5,6 +5,7 @@ from app.application.dto.auth import LoginDTO
 from app.domain.exceptions import UnauthorizedError
 
 from ..schemas import LoginRequestSchema, UserResponseSchema
+from ..validation import validation_error_response
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -21,7 +22,7 @@ def login():
         dto = LoginDTO.model_validate(validated_login.model_dump())
         user = get_auth_service().login(dto)
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
     except UnauthorizedError as e:
         return (
             jsonify(

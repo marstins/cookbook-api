@@ -126,6 +126,24 @@ Rotas que identificam o usuário leem o header `user-id`, preenchido pelo front 
 | Receitas | `GET POST /recipes/`, `GET /recipes/discover`, `GET /recipes/author/<id>`, `POST /recipes/save`, `GET PUT DELETE /recipes/<id>` |
 | Rascunhos | `GET POST /drafts/`, `GET /drafts/author/<id>`, `GET PUT DELETE /drafts/<id>` |
 
+### Erros de validação
+
+Dados inválidos respondem 422 com as mensagens em português, uma por campo:
+
+```json
+{
+  "error": "validation_error",
+  "message": "Título: máximo de 40 caracteres. Ingrediente 3: obrigatório.",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    { "field": "title", "message": "Título: máximo de 40 caracteres." },
+    { "field": "ingredients.2.description", "message": "Ingrediente 3: obrigatório." }
+  ]
+}
+```
+
+O front mostra o `message`. A tradução fica em `src/app/interfaces/http/validation.py`.
+
 ## Importação de receitas por foto
 
 1. O front lê o arquivo (PNG, JPG ou PDF, até 1 MiB) como data URI e envia em `POST /drafts/` no campo `source_data`.
@@ -175,5 +193,6 @@ Adicionado neste MVP:
 - Integração com o OCR.space e separação do texto pelos cabeçalhos declarados.
 - Checagem de autoria em `PUT` e `DELETE` de receitas e rascunhos.
 - Limite de tamanho do corpo da requisição (`MAX_CONTENT_LENGTH`) com resposta 413.
+- Erros de validação traduzidos para português, com o nome do campo.
 - Rotas de rascunho no Swagger.
 - Comando `seed`, Dockerfile e `docker-compose.yml`.

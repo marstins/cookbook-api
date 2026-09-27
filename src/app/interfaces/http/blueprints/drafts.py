@@ -9,6 +9,7 @@ from app.domain.exceptions import (ConflictError, ExternalServiceError,
 
 from ..schemas import (CreateDraftSchema, PaginationSchema,
                        UpdateDraftSchema)
+from ..validation import validation_error_response
 
 drafts_bp = Blueprint('drafts_bp', __name__)
 
@@ -35,7 +36,7 @@ def create_draft():
             'user_id': user_id,
         })
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         created_draft = get_draft_service().create(dto)
@@ -105,7 +106,7 @@ def get_author_drafts(author_id: str):
     try:
         validated = PaginationSchema.model_validate(dict(request.args))
     except ValidationError as e:
-        return jsonify({"errors": e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         result = get_draft_service().get_all_by_author_id(
@@ -154,7 +155,7 @@ def update_draft(draft_id: str):
         validated_draft = UpdateDraftSchema.model_validate(data)
         dto = UpdateDraftDTO.model_validate(validated_draft.model_dump())
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         updated_draft = get_draft_service().update(draft_id, user_id, dto)

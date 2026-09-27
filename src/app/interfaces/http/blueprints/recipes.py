@@ -8,6 +8,7 @@ from app.domain.exceptions import (ConflictError, NotFoundError,
 
 from ..schemas import (CreateRecipeSchema, PaginationSchema, SaveRecipeSchema,
                        UpdateRecipeSchema)
+from ..validation import validation_error_response
 
 recipes_bp = Blueprint('recipes_bp', __name__)
 
@@ -34,7 +35,7 @@ def create_recipe():
             'user_id': user_id,
         })
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         created_recipe = get_recipe_service().create(dto)
@@ -93,7 +94,7 @@ def discover_recipes():
     try:
         validated = PaginationSchema.model_validate(dict(request.args))
     except ValidationError as e:
-        return jsonify({"errors": e.errors()}), 422
+        return validation_error_response(e)
 
     result = get_recipe_service().get_all_public(
         user_id,
@@ -107,7 +108,7 @@ def get_author_recipes(author_id: str):
     try:
         validated = PaginationSchema.model_validate(dict(request.args))
     except ValidationError as e:
-        return jsonify({"errors": e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         result = get_recipe_service().get_all_by_author_id(
@@ -139,7 +140,7 @@ def save_recipe():
             "user_id": user_id,
         })
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         saved_recipe = get_recipe_service().save(dto)
@@ -220,7 +221,7 @@ def update_recipe(recipe_id: str):
         validated_recipe = UpdateRecipeSchema.model_validate(data)
         dto = UpdateRecipeDTO.model_validate(validated_recipe.model_dump())
     except ValidationError as e:
-        return jsonify({'errors': e.errors()}), 422
+        return validation_error_response(e)
 
     try:
         updated_recipe = get_recipe_service().update(recipe_id, user_id, dto)

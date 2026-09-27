@@ -251,7 +251,23 @@ def _schemas() -> dict:
         "ValidationErrorBody": {
             "type": "object",
             "properties": {
-                "errors": {"type": "array", "items": {"type": "object"}},
+                "error": {"type": "string", "example": "validation_error"},
+                "message": {
+                    "type": "string",
+                    "description": "Todas as mensagens de `errors`, juntas.",
+                    "example": "Título: máximo de 40 caracteres. Ingrediente 3: obrigatório.",
+                },
+                "code": {"type": "string", "example": "VALIDATION_ERROR"},
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {"type": "string", "example": "ingredients.2.description"},
+                            "message": {"type": "string", "example": "Ingrediente 3: obrigatório."},
+                        },
+                    },
+                },
             },
         },
     }
