@@ -130,7 +130,7 @@ def _schemas() -> dict:
         "CreateIngredientBody": {
             "type": "object",
             "properties": {
-                "description": {"type": "string", "minLength": 5, "maxLength": 30},
+                "description": {"type": "string", "minLength": 1, "maxLength": 30},
             },
             "required": ["description"],
         },
@@ -138,8 +138,8 @@ def _schemas() -> dict:
             "type": "object",
             "properties": {
                 "title": {"type": "string", "minLength": 1, "maxLength": 40},
-                "description": {"type": "string", "minLength": 10, "maxLength": 50},
-                "instructions": {"type": "string", "minLength": 10, "maxLength": 1000},
+                "description": {"type": "string", "minLength": 1, "maxLength": 50},
+                "instructions": {"type": "string", "minLength": 1, "maxLength": 1000},
                 "is_public": {"type": "boolean", "default": False},
                 "ingredients": {
                     "type": "array",
