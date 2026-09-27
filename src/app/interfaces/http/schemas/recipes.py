@@ -11,10 +11,10 @@ class CreateIngredientSchema(BaseModel):
 class CreateRecipeSchema(BaseModel):
     model_config = ConfigDict(title='CreateRecipeSchema')
 
-    title: str = Field(min_length=1, max_length=20, title='Título da receita')
-    description: str = Field(min_length=10, max_length=30, title='Descrição da receita')
+    title: str = Field(min_length=1, max_length=40, title='Título da receita')
+    description: str = Field(min_length=10, max_length=50, title='Descrição da receita')
     ingredients: list[CreateIngredientSchema] = Field(min_length=1, title='Lista de ingredientes')
-    instructions: str = Field(min_length=10, max_length=800, title='Instruções da receita')
+    instructions: str = Field(min_length=10, max_length=1000, title='Instruções da receita')
     is_public: bool = Field(default=False, title='Status público da receita')
 
 
@@ -33,8 +33,8 @@ class UpdateIngredientSchema(BaseModel):
 class UpdateRecipeSchema(BaseModel):
     model_config = ConfigDict(title='UpdateRecipeSchema')
 
-    title: str = Field(min_length=1, max_length=20, title='Título da receita')
-    description: str = Field(min_length=10, max_length=30, title='Descrição da receita')
+    title: str = Field(min_length=1, max_length=40, title='Título da receita')
+    description: str = Field(min_length=10, max_length=50, title='Descrição da receita')
     ingredients: list[UpdateIngredientSchema] = Field(min_length=1, title='Lista de ingredientes')
-    instructions: str = Field(min_length=10, max_length=800, title='Instruções da receita')
+    instructions: str = Field(min_length=10, max_length=1000, title='Instruções da receita')
     is_public: bool = Field(default=False, title='Status público da receita')

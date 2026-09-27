@@ -137,9 +137,9 @@ def _schemas() -> dict:
         "CreateRecipeBody": {
             "type": "object",
             "properties": {
-                "title": {"type": "string", "maxLength": 20},
-                "description": {"type": "string", "maxLength": 30},
-                "instructions": {"type": "string", "maxLength": 800},
+                "title": {"type": "string", "minLength": 1, "maxLength": 40},
+                "description": {"type": "string", "minLength": 10, "maxLength": 50},
+                "instructions": {"type": "string", "minLength": 10, "maxLength": 1000},
                 "is_public": {"type": "boolean", "default": False},
                 "ingredients": {
                     "type": "array",
