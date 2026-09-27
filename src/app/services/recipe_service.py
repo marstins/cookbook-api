@@ -179,7 +179,7 @@ class RecipeService:
                 code="RECIPE_NOT_OWNED"
             )
         try:
-            self._ingredient_repository.delete_recipe_id(recipe_id)
+            self._ingredient_repository.delete_by_recipe_id(recipe_id)
             self._recipe_repository.nullify_original_recipe(recipe_id)
             self._recipe_repository.delete(recipe_id)
             db.session.commit()

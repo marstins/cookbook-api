@@ -6,6 +6,10 @@ O front-end que consome esta API está no repositório `cookbook-front`.
 
 ## Arquitetura
 
+![Fluxograma da arquitetura: o usuário usa o cookbook-front no navegador; o front chama a cookbook-api por REST (GET, POST, PUT e DELETE); a API grava no SQLite e envia a imagem da receita ao OCR.space, que devolve o texto extraído.](docs/arquitetura.png)
+
+O mesmo diagrama em mermaid (fonte também em `docs/arquitetura.mmd`):
+
 ```mermaid
 flowchart LR
     U(("Usuário")) -->|navegador| F
@@ -25,6 +29,8 @@ flowchart LR
 ```
 
 O front nunca fala com o OCR.space: a chamada sai da API, que guarda a chave fora do navegador e devolve o resultado já como rascunho.
+
+> **Importação por foto precisa de uma chave do OCR.space.** Sem ela, todo o resto funciona, mas o botão **Enviar arquivo** do front responde com erro (`POST /drafts/` devolve 502 com `OCR_NOT_CONFIGURED`). A chave é gratuita: crie uma em https://ocr.space/ocrapi, copie `.env.example` para `.env` na raiz deste repositório e coloque a chave em `OCR_SPACE_API_KEY` antes de subir a API.
 
 ## Dependências
 
