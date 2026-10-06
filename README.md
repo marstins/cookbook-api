@@ -35,7 +35,7 @@ O front nunca fala com o OCR.space: a chamada sai da API, que guarda a chave for
 ## Dependências
 
 - Python 3.12 (ou 3.10+)
-- Pacotes em `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-CORS, Pydantic, argon2-cffi, requests)
+- Pacotes em `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-CORS, Pydantic, argon2-cffi, PyJWT, requests)
 - Uma chave gratuita do OCR.space, necessária apenas para a importação por foto
 
 ## Variáveis de ambiente
@@ -44,6 +44,7 @@ Copie `.env.example` para `.env` e preencha:
 
 | Variável | Obrigatória | Uso |
 | --- | --- | --- |
+| `AUTH_KEY` | Sim | Segredo HMAC dos tokens JWT. Sem ela a API não sobe. Use ao menos 32 bytes, por exemplo `python -c "import secrets; print(secrets.token_urlsafe(32))"`. |
 | `OCR_SPACE_API_KEY` | Para importar por foto | Chave do OCR.space. Sem ela, `POST /drafts/` responde 502 com `OCR_NOT_CONFIGURED`. |
 | `DATABASE_URL` | Não | URL do banco. Vazia, usa SQLite em `instance/app.sqlite`. |
 | `MAX_UPLOAD_BYTES` | Não | Tamanho máximo do arquivo enviado. Padrão `1048576` (1 MiB, limite do plano gratuito do OCR.space). |
@@ -117,7 +118,7 @@ O container da API roda o `seed` antes de subir. O banco fica no volume `api-dat
 
 Swagger UI em **http://127.0.0.1:5000/docs**. O JSON OpenAPI está em **/openapi.json**.
 
-Rotas que identificam o usuário leem o header `user-id`, preenchido pelo front com o id devolvido no login.
+Rotas protegidas exigem o header `Authorization: Bearer <token>`. O token é o JWT devolvido por `POST /auth/` no campo `token`. Sem ele, a API responde 401. `POST /auth/` (login) e `POST /users/` (cadastro) ficam públicos. Nas rotas com `user_id` no path, o id do token precisa ser o mesmo do path; caso contrário a resposta é 401 `USER_MISMATCH`.
 
 | Recurso | Rotas |
 | --- | --- |

@@ -8,6 +8,7 @@ from app.application.mappers.recipe_mapper import RecipePublicMapper
 from app.application.mappers.user_mapper import UserPublicMapper
 from app.application.mappers.draft_mapper import DraftPublicMapper
 from app.core.config import Config
+from app.domain.exceptions import UnauthorizedError
 from app.infrastructure.persistence import \
     models as _persistence_models  # noqa: F401
 from app.infrastructure.persistence.database import db
@@ -17,11 +18,12 @@ from app.infrastructure.persistence.repositories import (DraftRepository,
                                                          IngredientRepository,
                                                          RecipeRepository,
                                                          UserRepository)
-from app.infrastructure.security.password_hasher import PasswordHasher
+from app.infrastructure.security import AuthTokenHandler, PasswordHasher
 from app.interfaces.http.blueprints.auth import auth_bp
 from app.interfaces.http.blueprints.recipes import recipes_bp
 from app.interfaces.http.blueprints.users import users_bp
 from app.interfaces.http.blueprints.drafts import drafts_bp
+from app.interfaces.http.middlewares import AuthMiddleware
 from app.interfaces.http.openapi import register_openapi_routes
 from app.seed import seed_command
 from app.services.auth_service import AuthService
@@ -57,10 +59,27 @@ def handle_request_too_large(_error):
         413,
     )
 
+
+@app.errorhandler(UnauthorizedError)
+def handle_unauthorized(error):
+    return (
+        jsonify(
+            {
+                "error": "unauthorized",
+                "message": error.message,
+                "code": error.code,
+            }
+        ),
+        401,
+    )
+
+
 with app.app_context():
     db.create_all()
 
 password_hasher = PasswordHasher()
+auth_token_handler = AuthTokenHandler(Config.AUTH_KEY)
+auth_middleware = AuthMiddleware(auth_token_handler)
 recipe_mapper = RecipeMapper()
 recipe_public_mapper = RecipePublicMapper()
 user_public_mapper = UserPublicMapper()
@@ -81,7 +100,9 @@ recipe_service = RecipeService(
     user_repository,
     ingredient_repository,
 )
-auth_service = AuthService(user_repository, password_hasher, user_public_mapper)
+auth_service = AuthService(
+    user_repository, password_hasher, user_public_mapper, auth_token_handler
+)
 draft_mapper = DraftMapper()
 draft_repository = DraftRepository(draft_mapper)
 decode_draft_image_service = DecodeDraftImageService(Config.OCR_SPACE_API_KEY)
@@ -96,6 +117,12 @@ app.extensions["user_service"] = user_service
 app.extensions["recipe_service"] = recipe_service
 app.extensions["auth_service"] = auth_service
 app.extensions["draft_service"] = draft_service
+app.extensions["auth_token_handler"] = auth_token_handler
+app.extensions["auth_middleware"] = auth_middleware
+
+recipes_bp.before_request(auth_middleware.validate)
+drafts_bp.before_request(auth_middleware.validate)
+users_bp.before_request(auth_middleware.validate_users)
 
 app.register_blueprint(users_bp, url_prefix='/users')
 app.register_blueprint(recipes_bp, url_prefix='/recipes')

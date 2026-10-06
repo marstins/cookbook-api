@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from pydantic import ValidationError
 
 from app.application.dto.recipe import (CreateRecipeDTO, SaveRecipeDTO,
@@ -27,7 +27,7 @@ def get_all():
 @recipes_bp.post('/')
 def create_recipe():
     data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated_recipe = CreateRecipeSchema.model_validate(data)
         dto = CreateRecipeDTO.model_validate({
@@ -90,7 +90,7 @@ def create_recipe():
 
 @recipes_bp.get('/discover')
 def discover_recipes():
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated = PaginationSchema.model_validate(dict(request.args))
     except ValidationError as e:
@@ -132,7 +132,7 @@ def get_author_recipes(author_id: str):
 @recipes_bp.post('/save')
 def save_recipe():
     data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated_recipe = SaveRecipeSchema.model_validate(data)
         dto = SaveRecipeDTO.model_validate({
@@ -216,7 +216,7 @@ def get_recipe_by_id(recipe_id: str):
 @recipes_bp.put('/<string:recipe_id>')
 def update_recipe(recipe_id: str):
     data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated_recipe = UpdateRecipeSchema.model_validate(data)
         dto = UpdateRecipeDTO.model_validate(validated_recipe.model_dump())
@@ -287,7 +287,7 @@ def update_recipe(recipe_id: str):
 
 @recipes_bp.delete('/<string:recipe_id>')
 def delete_recipe(recipe_id: str):
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         get_recipe_service().delete(recipe_id, user_id)
     except NotFoundError as e:

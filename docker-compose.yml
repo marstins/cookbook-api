@@ -6,6 +6,7 @@ services:
     environment:
       OCR_SPACE_API_KEY: ${OCR_SPACE_API_KEY:-}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-1048576}
+      AUTH_KEY: ${AUTH_KEY:-}
     volumes:
       - api-data:/app/instance
 

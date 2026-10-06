@@ -23,19 +23,18 @@ def build_openapi_spec() -> dict:
         ],
         "paths": _paths(),
         "components": {
+            "securitySchemes": {
+                "bearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                    "description": (
+                        "Token devolvido por POST /auth/, enviado no cabeçalho "
+                        "`Authorization: Bearer <token>`."
+                    ),
+                },
+            },
             "parameters": {
-                "UserIdHeader": {
-                    "name": "user-id",
-                    "in": "header",
-                    "required": True,
-                    "schema": {"type": "string"},
-                },
-                "UserIdHeaderOptional": {
-                    "name": "user-id",
-                    "in": "header",
-                    "required": False,
-                    "schema": {"type": "string"},
-                },
                 "PageQuery": {
                     "name": "page",
                     "in": "query",
@@ -97,6 +96,21 @@ def _schemas() -> dict:
                 "password": {"type": "string", "minLength": 8},
             },
             "required": ["email", "password"],
+        },
+        "LoginResponse": {
+            "allOf": [
+                {"$ref": "#/components/schemas/UserPublic"},
+                {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                            "type": "string",
+                            "description": "JWT a ser enviado nas rotas protegidas.",
+                        },
+                    },
+                    "required": ["token"],
+                },
+            ],
         },
         "Ingredient": {
             "type": "object",
@@ -292,8 +306,8 @@ def _paths() -> dict:
                 },
                 "responses": {
                     "200": {
-                        "description": "Usuário autenticado",
-                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserPublic"}}},
+                        "description": "Usuário autenticado, com o token de acesso",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoginResponse"}}},
                     },
                     "401": {
                         "description": "Credenciais inválidas",
@@ -310,6 +324,7 @@ def _paths() -> dict:
             "get": {
                 "tags": ["Usuários"],
                 "summary": "Listar usuários",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Lista",
@@ -321,7 +336,11 @@ def _paths() -> dict:
                                 }
                             }
                         },
-                    }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
+                    },
                 },
             },
             "post": {
@@ -354,10 +373,15 @@ def _paths() -> dict:
             "get": {
                 "tags": ["Usuários"],
                 "summary": "Obter usuário",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserPublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente/inválido, ou o token não corresponde a este usuário",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Não encontrado",
@@ -368,8 +392,13 @@ def _paths() -> dict:
             "delete": {
                 "tags": ["Usuários"],
                 "summary": "Excluir usuário",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "204": {"description": "Sem corpo"},
+                    "401": {
+                        "description": "Token ausente/inválido, ou o token não corresponde a este usuário",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
+                    },
                     "404": {
                         "description": "Não encontrado",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
@@ -382,6 +411,7 @@ def _paths() -> dict:
             "patch": {
                 "tags": ["Usuários"],
                 "summary": "Alterar nome",
+                "security": [{"bearerAuth": []}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -392,6 +422,10 @@ def _paths() -> dict:
                     "200": {
                         "description": "OK",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserPublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente/inválido, ou o token não corresponde a este usuário",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Não encontrado",
@@ -413,6 +447,7 @@ def _paths() -> dict:
             "patch": {
                 "tags": ["Usuários"],
                 "summary": "Alterar senha",
+                "security": [{"bearerAuth": []}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -423,6 +458,10 @@ def _paths() -> dict:
                     "200": {
                         "description": "OK",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserPublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente/inválido, ou o token não corresponde a este usuário",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Não encontrado",
@@ -443,6 +482,7 @@ def _paths() -> dict:
             "get": {
                 "tags": ["Receitas"],
                 "summary": "Listar todas as receitas",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Lista",
@@ -451,6 +491,10 @@ def _paths() -> dict:
                                 "schema": {"type": "array", "items": {"$ref": "#/components/schemas/RecipePublic"}},
                             }
                         },
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                 },
             },
@@ -463,11 +507,15 @@ def _paths() -> dict:
                         "application/json": {"schema": {"$ref": "#/components/schemas/CreateRecipeBody"}},
                     },
                 },
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "201": {
                         "description": "Criada",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RecipePublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Autor não encontrado",
@@ -486,17 +534,21 @@ def _paths() -> dict:
         },
         "/recipes/discover": {
             "parameters": [
-                {"$ref": "#/components/parameters/UserIdHeaderOptional"},
                 {"$ref": "#/components/parameters/PageQuery"},
                 {"$ref": "#/components/parameters/PerPageQuery"},
             ],
             "get": {
                 "tags": ["Receitas"],
                 "summary": "Descobrir receitas públicas (paginado)",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Página",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaginatedRecipes"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "422": {
                         "description": "Query inválida",
@@ -514,10 +566,15 @@ def _paths() -> dict:
             "get": {
                 "tags": ["Receitas"],
                 "summary": "Receitas do autor (paginado)",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Página",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaginatedRecipes"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Usuário não encontrado",
@@ -540,11 +597,15 @@ def _paths() -> dict:
                         "application/json": {"schema": {"$ref": "#/components/schemas/SaveRecipeBody"}},
                     },
                 },
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "201": {
                         "description": "Cópia criada",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RecipePublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Receita ou usuário não encontrado",
@@ -566,10 +627,15 @@ def _paths() -> dict:
             "get": {
                 "tags": ["Receitas"],
                 "summary": "Obter receita",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RecipePublic"}}},
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido ou expirado",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
                         "description": "Não encontrada",
@@ -580,7 +646,7 @@ def _paths() -> dict:
             "put": {
                 "tags": ["Receitas"],
                 "summary": "Atualizar receita",
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -593,7 +659,7 @@ def _paths() -> dict:
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RecipePublic"}}},
                     },
                     "401": {
-                        "description": "O usuário não é o autor da receita",
+                        "description": "Token ausente/inválido, ou o usuário não é o autor da receita",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
@@ -613,11 +679,11 @@ def _paths() -> dict:
             "delete": {
                 "tags": ["Receitas"],
                 "summary": "Excluir receita",
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "204": {"description": "Sem corpo"},
                     "401": {
-                        "description": "O usuário não é o autor da receita",
+                        "description": "Token ausente/inválido, ou o usuário não é o autor da receita",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HttpError"}}},
                     },
                     "404": {
@@ -658,6 +724,7 @@ def _draft_paths() -> dict:
             "get": {
                 "tags": ["Rascunhos"],
                 "summary": "Listar todos os rascunhos",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Lista",
@@ -667,6 +734,7 @@ def _draft_paths() -> dict:
                             }
                         },
                     },
+                    "401": _error("Token ausente, inválido ou expirado"),
                 },
             },
             "post": {
@@ -678,7 +746,7 @@ def _draft_paths() -> dict:
                     "título, ingredientes e instruções são separados; caso contrário, o "
                     "texto inteiro vai para instructions."
                 ),
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -687,6 +755,7 @@ def _draft_paths() -> dict:
                 },
                 "responses": {
                     "201": _draft_body("Rascunho criado"),
+                    "401": _error("Token ausente, inválido ou expirado"),
                     "404": _error("Usuário não encontrado"),
                     "409": _error("Conflito de integridade"),
                     "413": _error("Corpo da requisição acima do limite (MAX_CONTENT_LENGTH)"),
@@ -719,11 +788,13 @@ def _draft_paths() -> dict:
             "get": {
                 "tags": ["Rascunhos"],
                 "summary": "Rascunhos do autor (paginado)",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "Página",
                         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaginatedDrafts"}}},
                     },
+                    "401": _error("Token ausente, inválido ou expirado"),
                     "404": _error("Usuário não encontrado"),
                     "422": _validation_error("Query inválida"),
                 },
@@ -734,15 +805,17 @@ def _draft_paths() -> dict:
             "get": {
                 "tags": ["Rascunhos"],
                 "summary": "Obter rascunho",
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": _draft_body("OK"),
+                    "401": _error("Token ausente, inválido ou expirado"),
                     "404": _error("Não encontrado"),
                 },
             },
             "put": {
                 "tags": ["Rascunhos"],
                 "summary": "Atualizar rascunho",
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -751,7 +824,7 @@ def _draft_paths() -> dict:
                 },
                 "responses": {
                     "200": _draft_body("OK"),
-                    "401": _error("O usuário não é o autor do rascunho"),
+                    "401": _error("Token ausente/inválido, ou o usuário não é o autor do rascunho"),
                     "404": _error("Não encontrado"),
                     "409": _error("Integridade"),
                     "422": _validation_error(),
@@ -764,10 +837,10 @@ def _draft_paths() -> dict:
                     "Também usado pelo front logo depois de POST /recipes/ quando o "
                     "rascunho vira receita."
                 ),
-                "parameters": [{"$ref": "#/components/parameters/UserIdHeader"}],
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "204": {"description": "Sem corpo"},
-                    "401": _error("O usuário não é o autor do rascunho"),
+                    "401": _error("Token ausente/inválido, ou o usuário não é o autor do rascunho"),
                     "404": _error("Não encontrado"),
                     "409": _error("Integridade"),
                 },

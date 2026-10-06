@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from pydantic import ValidationError
 
 from app.application.dto.draft import (CreateDraftDTO,
@@ -28,7 +28,7 @@ def get_all():
 @drafts_bp.post('/')
 def create_draft():
     data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated_draft = CreateDraftSchema.model_validate(data)
         dto = CreateDraftDTO.model_validate({
@@ -150,7 +150,7 @@ def get_draft_by_id(draft_id: str):
 @drafts_bp.put('/<string:draft_id>')
 def update_draft(draft_id: str):
     data = request.get_json(silent=True) or {}
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         validated_draft = UpdateDraftSchema.model_validate(data)
         dto = UpdateDraftDTO.model_validate(validated_draft.model_dump())
@@ -221,7 +221,7 @@ def update_draft(draft_id: str):
 
 @drafts_bp.delete('/<string:draft_id>')
 def delete_draft(draft_id: str):
-    user_id = request.headers.get('user-id')
+    user_id = g.user_id
     try:
         get_draft_service().delete(draft_id, user_id)
     except NotFoundError as e:

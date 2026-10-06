@@ -1,4 +1,4 @@
-from app.application.dto.auth import LoginDTO
+from app.application.dto.auth import LoginDTO, LoginResultDTO
 from app.application.dto.ingredient import (CreateIngredientDTO,
                                             UpdateIngredientDTO)
 from app.application.dto.pagination import (PaginatedRecipesDTO,
@@ -13,6 +13,7 @@ from app.application.dto.draft import (CreateDraftDTO, UpdateDraftDTO)
 
 __all__ = [
     "LoginDTO",
+    "LoginResultDTO",
     "CreateIngredientDTO",
     "UpdateIngredientDTO",
     "PaginatedRecipesDTO",
