@@ -14,4 +14,4 @@ ENV PYTHONPATH=src \
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "flask seed && flask run --host 0.0.0.0 --port 5000"]
+CMD ["sh", "-c", "alembic upgrade head && flask seed && flask run --host 0.0.0.0 --port 5000"]

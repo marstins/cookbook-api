@@ -73,10 +73,6 @@ def handle_unauthorized(error):
         401,
     )
 
-
-with app.app_context():
-    db.create_all()
-
 password_hasher = PasswordHasher()
 auth_token_handler = AuthTokenHandler(Config.AUTH_KEY)
 auth_middleware = AuthMiddleware(auth_token_handler)
