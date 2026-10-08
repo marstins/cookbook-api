@@ -48,6 +48,7 @@ class RecipeService:
                 description=recipe.description,
                 instructions=recipe.instructions,
                 is_public=recipe.is_public,
+                tags=recipe.tags,
                 author_id=recipe.user_id,
             )
             created_recipe = self._recipe_repository.create(recipe_to_create)
@@ -132,6 +133,7 @@ class RecipeService:
                 description=data.description,
                 instructions=data.instructions,
                 is_public=data.is_public,
+                tags=data.tags,
             )
             self._ingredient_repository.delete_by_recipe_id(recipe_id)
             ingredients_to_create = [
@@ -248,6 +250,7 @@ class RecipeService:
                 description=recipe.description,
                 instructions=recipe.instructions,
                 is_public=recipe.is_public,
+                tags=recipe.tags,
                 author_id=data.user_id,
                 original_author_id=recipe.author_id,
                 original_recipe_id=data.recipe_id,

@@ -11,6 +11,7 @@ class RecipeORM(db.Model):
     description = db.Column(db.String(255), nullable=False)
     instructions = db.Column(db.Text, nullable=False)
     is_public = db.Column(db.Boolean, nullable=False, default=False)
+    tags = db.Column(db.Text, nullable=True)
     author_id = db.Column(
         db.String(36),
         db.ForeignKey('users.id', ondelete="CASCADE"),

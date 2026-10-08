@@ -9,6 +9,7 @@ class CreateRecipeDTO(BaseModel):
     instructions: str
     is_public: bool
     ingredients: list[CreateIngredientDTO]
+    tags: str | None = None
     user_id: str
 
 
@@ -18,6 +19,7 @@ class UpdateRecipeDTO(BaseModel):
     instructions: str
     ingredients: list[UpdateIngredientDTO]
     is_public: bool
+    tags: str | None = None
 
 
 class SaveRecipeDTO(BaseModel):

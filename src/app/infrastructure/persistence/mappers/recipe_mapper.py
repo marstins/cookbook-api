@@ -29,6 +29,7 @@ class RecipeMapper:
                 }
                 for ingredient in recipe_orm.ingredients
             ],
+            "tags": recipe_orm.tags,
             "author_id": recipe_orm.author_id,
             "author_name": author_name,
             "original_recipe_id": recipe_orm.original_recipe_id,

@@ -88,6 +88,7 @@ class RecipeRepository:
         recipe_orm.title = data.title
         recipe_orm.description = data.description
         recipe_orm.instructions = data.instructions
+        recipe_orm.tags = data.tags
         recipe_orm.is_public = data.is_public
         db.session.flush()
         db.session.refresh(recipe_orm)
