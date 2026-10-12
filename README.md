@@ -63,11 +63,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Carregue as variáveis e suba o Flask (sempre na raiz do repositório, com o `PYTHONPATH` apontando para `src`):
+Carregue as variáveis, aplique as migrations e suba o Flask (sempre na raiz do repositório, com o `PYTHONPATH` apontando para `src`):
 
 ```bash
 set -a && source .env && set +a
 export PYTHONPATH=src
+alembic upgrade head
 flask --app app.app run --debug
 ```
 
@@ -75,7 +76,7 @@ No Windows, ao ativar a venv use `.venv\Scripts\activate` em vez de `source .ven
 
 ### Dados de exemplo
 
-Para a aplicação não abrir vazia:
+Para a aplicação não abrir vazia (o banco já precisa estar em `alembic upgrade head`):
 
 ```bash
 PYTHONPATH=src flask --app app.app seed
@@ -112,7 +113,39 @@ No Linux, o Docker só aceita comandos de root ou de quem está no grupo `docker
 - API: http://127.0.0.1:5000
 - Swagger: http://127.0.0.1:5000/docs
 
-O container da API roda o `seed` antes de subir. O banco fica no volume `api-data` e sobrevive a `docker compose down`; para zerar, use `docker compose down -v`.
+O container da API roda `alembic upgrade head` e o `seed` antes de subir. O banco fica no volume `api-data` e sobrevive a `docker compose down`; para zerar, use `docker compose down -v`.
+
+## Banco e migrations (Alembic)
+
+O schema do banco vive nas revisions em `src/app/infrastructure/persistence/migrations/versions/`. A API **não** cria tabelas no boot (`create_all`). Sem `alembic upgrade head`, o SQLite local fica vazio ou atrasado em relação aos models.
+
+O `alembic.ini` está na raiz. O `env.py` usa a mesma URL da API (`DATABASE_URL` ou, se vazia, `instance/app.sqlite`) e o metadata dos models em `app.infrastructure.persistence.models`.
+
+Na raiz do repositório, com a venv ativa:
+
+| Comando | Uso |
+| --- | --- |
+| `alembic current` | Revision aplicada neste banco |
+| `alembic history` | Histórico das revisions |
+| `alembic upgrade head` | Aplica o que falta (também no Docker, antes do seed) |
+| `alembic downgrade -1` | Desfaz a última revision |
+| `alembic revision --autogenerate -m "descrição"` | Diff dos models contra o **banco ao vivo** |
+
+O autogenerate compara os models com o banco atual, não com um dump da revision anterior. Revision vazia significa que o SQLite já bate com os models.
+
+Ao gerar uma revision, revise o arquivo em `versions/` antes do `upgrade`. Em especial:
+
+- Coluna que vira `NOT NULL` com linhas antigas: faça o backfill na `upgrade` (`UPDATE ... SET tags = '[]' WHERE tags IS NULL`) **antes** de tornar a coluna obrigatória.
+- SQLite não aceita `ALTER TABLE ... ALTER COLUMN ... SET NOT NULL`. Use `op.batch_alter_table` (o SQLite recria a tabela).
+
+```python
+def upgrade() -> None:
+    op.execute("UPDATE recipes SET tags = '[]' WHERE tags IS NULL")
+    with op.batch_alter_table("recipes") as batch_op:
+        batch_op.alter_column("tags", existing_type=sa.TEXT(), nullable=False)
+```
+
+Se o banco já tinha o schema (por um `create_all` antigo) e não tem linha em `alembic_version`, use `alembic stamp head` **uma vez** — isso só marca a revision, não altera tabelas. Banco novo: só `upgrade head`.
 
 ## Documentação das rotas
 
@@ -126,6 +159,14 @@ Rotas protegidas exigem o header `Authorization: Bearer <token>`. O token é o J
 | Usuários | `GET POST /users/`, `GET DELETE /users/<id>`, `PATCH /users/<id>/change-name`, `PATCH /users/<id>/change-password` |
 | Receitas | `GET POST /recipes/`, `GET /recipes/discover`, `GET /recipes/author/<id>`, `POST /recipes/save`, `GET PUT DELETE /recipes/<id>` |
 | Rascunhos | `GET POST /drafts/`, `GET /drafts/author/<id>`, `GET PUT DELETE /drafts/<id>` |
+
+### Tags de dieta
+
+`POST /recipes/` e `PUT /recipes/<id>` exigem `tags`: uma lista com zero ou mais de `vegan`, `vegetarian`, `gluten_free` e `lactose_free`. Sem restrição, o front envia `[]`. Valor fora dessa lista responde 422.
+
+A API não devolve a lista. Em `RecipePublic` e `DraftPublic` as tags viram booleanos: `is_vegan`, `is_vegetarian`, `is_gluten_free` e `is_lactose_free`.
+
+Rascunho criado por `POST /drafts/` nasce sem tags. `PUT /drafts/<id>` aceita a mesma lista; omitir `tags` equivale a `[]`.
 
 ### Erros de validação
 
