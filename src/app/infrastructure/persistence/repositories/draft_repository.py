@@ -56,6 +56,7 @@ class DraftRepository:
         draft_orm.description = data.description
         draft_orm.instructions = data.instructions
         draft_orm.ingredients = data.ingredients
+        draft_orm.tags = data.tags
         db.session.flush()
         db.session.refresh(draft_orm)
         return self._draft_mapper.map_from_orm(draft_orm)

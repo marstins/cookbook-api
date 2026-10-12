@@ -121,6 +121,19 @@ def _schemas() -> dict:
                 "created_at": {"type": "string", "format": "date-time"},
             },
         },
+        "RecipeTag": {
+            "type": "string",
+            "enum": ["vegan", "vegetarian", "gluten_free", "lactose_free"],
+            "description": "Restrição alimentar persistida na receita ou no rascunho.",
+        },
+        "RecipeTags": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/RecipeTag"},
+            "description": (
+                "Lista de restrições. Sem tags, enviar []. "
+                "Valores fora do enum são rejeitados."
+            ),
+        },
         "RecipePublic": {
             "type": "object",
             "properties": {
@@ -133,6 +146,10 @@ def _schemas() -> dict:
                     "type": "array",
                     "items": {"$ref": "#/components/schemas/Ingredient"},
                 },
+                "is_vegetarian": {"type": "boolean"},
+                "is_vegan": {"type": "boolean"},
+                "is_gluten_free": {"type": "boolean"},
+                "is_lactose_free": {"type": "boolean"},
                 "author_id": {"type": "string"},
                 "author_name": {"type": "string"},
                 "original_recipe_id": {"type": "string", "nullable": True},
@@ -160,8 +177,9 @@ def _schemas() -> dict:
                     "minItems": 1,
                     "items": {"$ref": "#/components/schemas/CreateIngredientBody"},
                 },
+                "tags": {"$ref": "#/components/schemas/RecipeTags"},
             },
-            "required": ["title", "description", "instructions", "ingredients"],
+            "required": ["title", "description", "instructions", "ingredients", "tags"],
         },
         "SaveRecipeBody": {
             "type": "object",
@@ -206,10 +224,24 @@ def _schemas() -> dict:
                     "type": "array",
                     "items": {"$ref": "#/components/schemas/DraftIngredient"},
                 },
+                "is_vegetarian": {"type": "boolean"},
+                "is_vegan": {"type": "boolean"},
+                "is_gluten_free": {"type": "boolean"},
+                "is_lactose_free": {"type": "boolean"},
                 "is_draft": {"type": "boolean", "enum": [True]},
                 "created_at": {"type": "string", "format": "date-time"},
             },
-            "required": ["id", "author_id", "ingredients", "is_draft", "created_at"],
+            "required": [
+                "id",
+                "author_id",
+                "ingredients",
+                "is_vegetarian",
+                "is_vegan",
+                "is_gluten_free",
+                "is_lactose_free",
+                "is_draft",
+                "created_at",
+            ],
         },
         "CreateDraftBody": {
             "type": "object",
@@ -240,6 +272,7 @@ def _schemas() -> dict:
                     "type": "array",
                     "items": {"$ref": "#/components/schemas/DraftIngredient"},
                 },
+                "tags": {"$ref": "#/components/schemas/RecipeTags"},
             },
             "required": ["ingredients"],
         },
@@ -744,7 +777,8 @@ def _draft_paths() -> dict:
                     "Envia o arquivo ao OCR.space e cria um rascunho com o texto extraído. "
                     "Se o texto tiver os cabeçalhos \"Ingredientes\" e \"Modo de preparo\", "
                     "título, ingredientes e instruções são separados; caso contrário, o "
-                    "texto inteiro vai para instructions."
+                    "texto inteiro vai para instructions. Tags nascem vazias "
+                    "(is_vegan, is_vegetarian, is_gluten_free e is_lactose_free = false)."
                 ),
                 "security": [{"bearerAuth": []}],
                 "requestBody": {

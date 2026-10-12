@@ -1,11 +1,11 @@
-import ast
+import json
 
 from app.domain.models.aggregates.recipe.recipe import Recipe, RecipePublic
 
 
 class RecipePublicMapper:
     def map_to_public(self, recipe: Recipe) -> RecipePublic:
-        tags_list = ast.literal_eval(recipe.tags) or []
+        tags_list = json.loads(recipe.tags)
 
         return RecipePublic(
             title=recipe.title,
@@ -16,8 +16,8 @@ class RecipePublicMapper:
             ingredients=recipe.ingredients,
             is_vegetarian='vegetarian' in tags_list,
             is_vegan='vegan' in tags_list,
-            is_gluten_free='gluten_free' in tags.list,
-            is_lactose_free='lactose_free' in tags.list,            
+            is_gluten_free='gluten_free' in tags_list,
+            is_lactose_free='lactose_free' in tags_list,            
             author_id=recipe.author_id,
             author_name=recipe.author_name,
             original_recipe_id=recipe.original_recipe_id,

@@ -88,6 +88,7 @@ class DraftService:
                 ),
                 instructions=draft_instructions or draft_text,
                 author_id=draft.user_id,
+                tags=json.dumps([]),
             )
             created_draft = self._draft_repository.create(draft_to_create)
             draft = self._draft_repository.get_by_id(created_draft.id)
@@ -139,6 +140,7 @@ class DraftService:
                 description=data.description,
                 ingredients=json.dumps([ingredient.model_dump() for ingredient in data.ingredients]),
                 instructions=data.instructions,
+                tags=json.dumps(data.tags),
             )
             updated_draft = self._draft_repository.update(draft_id, draft_to_update)
             if updated_draft is None:

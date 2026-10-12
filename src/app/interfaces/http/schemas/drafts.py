@@ -1,11 +1,14 @@
 from pydantic import BaseModel, Field
 from pydantic.config import ConfigDict
+from typing import Literal
 
 
 _DATA_URI = (
     r"^data:(image/jpeg|image/png|application/pdf);base64,"
     r"[A-Za-z0-9+/]+=*$"
 )
+
+DraftTag = Literal["vegan", "vegetarian", "gluten_free", "lactose_free"]
 
 class CreateDraftSchema(BaseModel):
     model_config = ConfigDict(title='CreateDraftSchema')
@@ -27,3 +30,4 @@ class UpdateDraftSchema(BaseModel):
     description: str | None = Field(default=None, max_length=255, title='Descrição da receita')
     ingredients: list[DraftIngredientSchema] = Field(title='Lista de ingredientes')
     instructions: str | None = Field(default=None, title='Instruções da receita')
+    tags: list[DraftTag] = Field(default_factory=list, title='Tags da receita')

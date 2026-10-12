@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.application.dto.pagination import (PaginatedRecipesDTO,
@@ -48,7 +50,7 @@ class RecipeService:
                 description=recipe.description,
                 instructions=recipe.instructions,
                 is_public=recipe.is_public,
-                tags=recipe.tags,
+                tags=json.dumps(recipe.tags),
                 author_id=recipe.user_id,
             )
             created_recipe = self._recipe_repository.create(recipe_to_create)
@@ -132,8 +134,10 @@ class RecipeService:
                 title=data.title,
                 description=data.description,
                 instructions=data.instructions,
-                is_public=data.is_public,
-                tags=data.tags,
+                is_public=(
+                    data.is_public if recipe.original_recipe_id is None else False
+                ),
+                tags=json.dumps(data.tags),
             )
             self._ingredient_repository.delete_by_recipe_id(recipe_id)
             ingredients_to_create = [
@@ -249,7 +253,7 @@ class RecipeService:
                 title=recipe.title,
                 description=recipe.description,
                 instructions=recipe.instructions,
-                is_public=recipe.is_public,
+                is_public=False,
                 tags=recipe.tags,
                 author_id=data.user_id,
                 original_author_id=recipe.author_id,

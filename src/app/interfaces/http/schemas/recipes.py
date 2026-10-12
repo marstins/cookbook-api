@@ -1,5 +1,9 @@
 from pydantic import BaseModel, Field
 from pydantic.config import ConfigDict
+from typing import Literal
+
+
+RecipeTag = Literal["vegan", "vegetarian", "gluten_free", "lactose_free"]
 
 
 class CreateIngredientSchema(BaseModel):
@@ -16,7 +20,7 @@ class CreateRecipeSchema(BaseModel):
     ingredients: list[CreateIngredientSchema] = Field(min_length=1, title='Lista de ingredientes')
     instructions: str = Field(min_length=1, max_length=1000, title='Instruções da receita')
     is_public: bool = Field(default=False, title='Status público da receita')
-    tags: str | None = Field(default=None, max_length=100, title='Tags da receita')
+    tags: list[RecipeTag] = Field(title='Tags da receita')
 
 
 class SaveRecipeSchema(BaseModel):
@@ -39,4 +43,4 @@ class UpdateRecipeSchema(BaseModel):
     ingredients: list[UpdateIngredientSchema] = Field(min_length=1, title='Lista de ingredientes')
     instructions: str = Field(min_length=1, max_length=1000, title='Instruções da receita')
     is_public: bool = Field(default=False, title='Status público da receita')
-    tags: str | None = Field(default=None, max_length=100, title='Tags da receita')
+    tags: list[RecipeTag] = Field(title='Tags da receita')

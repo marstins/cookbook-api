@@ -11,6 +11,7 @@ class DraftORM(db.Model):
     description = db.Column(db.String(255), nullable=True)
     instructions = db.Column(db.Text, nullable=True)
     ingredients = db.Column(db.Text, nullable=True, default=False)
+    tags = db.Column(db.Text, nullable=True)
     author_id = db.Column(
         db.String(36),
         db.ForeignKey('users.id', ondelete="CASCADE"),

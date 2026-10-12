@@ -10,6 +10,7 @@ class DraftMapper:
             "description": draft_orm.description,
             "instructions": draft_orm.instructions,
             "ingredients": draft_orm.ingredients,
+            "tags": draft_orm.tags,
             "author_id": draft_orm.author_id,
             "created_at": draft_orm.created_at,
         }

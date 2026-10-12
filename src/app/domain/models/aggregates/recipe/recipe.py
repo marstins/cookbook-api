@@ -13,14 +13,14 @@ class RecipeBase(BaseModel):
 
 
 class RecipeCreate(RecipeBase):
-    tags: str | None = None
+    tags: str
     author_id: str
     original_author_id: str | None = None
     original_recipe_id: str | None = None
 
 
 class RecipeUpdate(RecipeBase):
-    tags: str | None = None
+    tags: str
 
 
 class RecipePublic(RecipeBase):
@@ -41,7 +41,7 @@ class RecipePublic(RecipeBase):
 class Recipe(RecipeBase):
     id: str
     ingredients: list[Ingredient]
-    tags: str | None = None
+    tags: str
     author_id: str
     author_name: str
     original_recipe_id: str | None = None
