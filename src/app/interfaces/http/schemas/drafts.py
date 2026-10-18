@@ -25,7 +25,6 @@ class DraftIngredientSchema(BaseModel):
 class UpdateDraftSchema(BaseModel):
     model_config = ConfigDict(title='UpdateDraftSchema')
 
-    # 255 é o tamanho das colunas em drafts, não o limite de receita.
     title: str | None = Field(default=None, max_length=255, title='Título da receita')
     description: str | None = Field(default=None, max_length=255, title='Descrição da receita')
     ingredients: list[DraftIngredientSchema] = Field(title='Lista de ingredientes')

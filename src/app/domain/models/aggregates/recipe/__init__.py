@@ -4,7 +4,8 @@ from app.domain.models.aggregates.recipe.ingredient import (Ingredient,
 from app.domain.models.aggregates.recipe.recipe import (Recipe, RecipeBase,
                                                         RecipeCreate,
                                                         RecipePublic,
-                                                        RecipeUpdate)
+                                                        RecipeUpdate,
+                                                        RecipeFilter)
 
 __all__ = [
     "Ingredient",
@@ -15,4 +16,5 @@ __all__ = [
     "RecipeCreate",
     "RecipePublic",
     "RecipeUpdate",
+    "RecipeFilter"
 ]

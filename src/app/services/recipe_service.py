@@ -2,10 +2,11 @@ import json
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.application.dto.pagination import (PaginatedRecipesDTO,
+from app.application.dto.pagination import (PaginationDTO,
+                                            PaginatedRecipesDTO,
                                             build_pagination_meta)
 from app.application.dto.recipe import (CreateRecipeDTO, SaveRecipeDTO,
-                                        UpdateRecipeDTO)
+                                        UpdateRecipeDTO, RecipeFilterDTO)
 from app.application.mappers.recipe_mapper import RecipePublicMapper
 from app.domain.exceptions import (ConflictError, NotFoundError,
                                    PersistenceError, UnauthorizedError)
@@ -31,11 +32,20 @@ class RecipeService:
         self._user_repository = user_repository
         self._ingredient_repository = ingredient_repository
 
-    def get_all(self) -> list[RecipePublic]:
-        recipes = self._recipe_repository.get_all()
-        return [
+    def get_all(self, filters: RecipeFilterDTO | None, pagination: PaginationDTO) -> list[RecipePublic]:
+        page, per_page = pagination.page, pagination.per_page
+        total_items = self._recipe_repository.count_by(filters)
+        offset = (page - 1) * per_page
+        recipes = self._recipe_repository.get_all(
+            filters, offset, per_page
+        )
+        items = [
             self._recipe_public_mapper.map_to_public(recipe) for recipe in recipes
         ]
+        return PaginatedRecipesDTO(
+            items=items,
+            pagination=build_pagination_meta(page, per_page, total_items),
+        )
 
     def create(self, recipe: CreateRecipeDTO) -> RecipePublic:
         try:
@@ -84,29 +94,6 @@ class RecipeService:
             ) from None
 
         return self._recipe_public_mapper.map_to_public(recipe)
-
-    def get_all_public(
-        self,
-        user_id: str | None,
-        page: int,
-        per_page: int,
-    ) -> PaginatedRecipesDTO:
-        total_items = self._recipe_repository.count_public(
-            exclude_author_id=user_id,
-        )
-        offset = (page - 1) * per_page
-        recipes = self._recipe_repository.get_all_public(
-            offset,
-            per_page,
-            exclude_author_id=user_id,
-        )
-        items = [
-            self._recipe_public_mapper.map_to_public(recipe) for recipe in recipes
-        ]
-        return PaginatedRecipesDTO(
-            items=items,
-            pagination=build_pagination_meta(page, per_page, total_items),
-        )
 
     def get_by_id(self, recipe_id: str) -> RecipePublic:
         recipe = self._recipe_repository.get_by_id(recipe_id)
@@ -201,31 +188,6 @@ class RecipeService:
                 "Falha ao persistir a exclusão da receita.",
                 code="RECIPE_DELETE_PERSISTENCE_ERROR",
             ) from None
-
-    def get_all_by_author_id(
-        self,
-        author_id: str,
-        page: int,
-        per_page: int,
-    ) -> PaginatedRecipesDTO:
-        user = self._user_repository.get_by_id(author_id)
-        if user is None:
-            raise NotFoundError(
-                "Usuário não encontrado",
-                code="USER_NOT_FOUND",
-            )
-        total_items = self._recipe_repository.count_by_author_id(author_id)
-        offset = (page - 1) * per_page
-        recipes = self._recipe_repository.get_all_by_author_id(
-            author_id, offset, per_page
-        )
-        items = [
-            self._recipe_public_mapper.map_to_public(recipe) for recipe in recipes
-        ]
-        return PaginatedRecipesDTO(
-            items=items,
-            pagination=build_pagination_meta(page, per_page, total_items),
-        )
 
     def save(self, data: SaveRecipeDTO) -> RecipePublic:
         try:

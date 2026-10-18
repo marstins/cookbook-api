@@ -8,7 +8,8 @@ from app.interfaces.http.schemas.recipes import (CreateIngredientSchema,
                                                  CreateRecipeSchema,
                                                  SaveRecipeSchema,
                                                  UpdateIngredientSchema,
-                                                 UpdateRecipeSchema)
+                                                 UpdateRecipeSchema,
+                                                 RecipeFilterSchema)
 from app.interfaces.http.schemas.users import (CreateUserSchema,
                                                UpdateUserNameSchema,
                                                UpdateUserPasswordSchema,
@@ -24,10 +25,11 @@ __all__ = [
     "SaveRecipeSchema",
     "UpdateIngredientSchema",
     "UpdateRecipeSchema",
+    "RecipeFilterSchema",
     "LoginRequestSchema",
     "PaginationSchema",
     "PaginationResponseSchema",
     "PaginatedRecipeListResponseSchema",
     "CreateDraftSchema",
-    "UpdateDraftSchema",
+    "UpdateDraftSchema", 
 ]

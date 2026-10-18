@@ -1,13 +1,14 @@
 from flask import Blueprint, current_app, g, jsonify, request
 from pydantic import ValidationError
 
+from app.application.dto.pagination import (PaginationDTO)
 from app.application.dto.recipe import (CreateRecipeDTO, SaveRecipeDTO,
-                                        UpdateRecipeDTO)
+                                        UpdateRecipeDTO, RecipeFilterDTO)
 from app.domain.exceptions import (ConflictError, NotFoundError,
                                    PersistenceError, UnauthorizedError)
 
 from ..schemas import (CreateRecipeSchema, PaginationSchema, SaveRecipeSchema,
-                       UpdateRecipeSchema)
+                       UpdateRecipeSchema, RecipeFilterSchema)
 from ..validation import validation_error_response
 
 recipes_bp = Blueprint('recipes_bp', __name__)
@@ -92,28 +93,30 @@ def create_recipe():
 def discover_recipes():
     user_id = g.user_id
     try:
-        validated = PaginationSchema.model_validate(dict(request.args))
+        pagination = PaginationSchema.model_validate(dict(request.args))
+        filters = RecipeFilterSchema.model_validate(dict(request.args))
     except ValidationError as e:
         return validation_error_response(e)
 
-    result = get_recipe_service().get_all_public(
-        user_id,
-        **validated.model_dump(),
-    )
+    pagination_dto = PaginationDTO.model_validate(pagination.model_dump())
+    filter_dto = RecipeFilterDTO.model_validate({**filters.model_dump(), 'get_public': True, 'exclude_author_id': [user_id]})
+    result = get_recipe_service().get_all(filter_dto, pagination_dto)
     return jsonify(result.model_dump(mode="json")), 200
 
 
-@recipes_bp.get('/author/<string:author_id>')
-def get_author_recipes(author_id: str):
+@recipes_bp.get('/cookbook')
+def get_cookbook():
+    user_id = g.user_id
     try:
-        validated = PaginationSchema.model_validate(dict(request.args))
+        pagination = PaginationSchema.model_validate(dict(request.args))
+        filters = RecipeFilterSchema.model_validate({**dict(request.args), 'author_id': [user_id]})
     except ValidationError as e:
         return validation_error_response(e)
 
     try:
-        result = get_recipe_service().get_all_by_author_id(
-            author_id, **validated.model_dump()
-        )
+        pagination_dto = PaginationDTO.model_validate(pagination.model_dump())
+        filter_dto = RecipeFilterDTO.model_validate(filters.model_dump())
+        result = get_recipe_service().get_all(filter_dto, pagination_dto)
     except NotFoundError as e:
         return (
             jsonify(

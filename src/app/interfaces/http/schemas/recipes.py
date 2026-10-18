@@ -44,3 +44,12 @@ class UpdateRecipeSchema(BaseModel):
     instructions: str = Field(min_length=1, max_length=1000, title='Instruções da receita')
     is_public: bool = Field(default=False, title='Status público da receita')
     tags: list[RecipeTag] = Field(title='Tags da receita')
+
+class RecipeFilterSchema(BaseModel):
+    model_config = ConfigDict(title='RecipeFilters')
+
+    title: str  | None = Field(default=None, min_length=1, max_length=40, title='Título da receita')
+    description: str | None = Field(default=None, min_length=1, max_length=50, title='Descrição da receita')
+    instructions: str = Field(default=None, min_length=1, max_length=1000, title='Instruções da receita')
+    tags: list[RecipeTag] = Field(default_factory=list, title='Tags da receita')
+    author_id: list[str] = Field(default_factory=list, title='Id do autor da receita')

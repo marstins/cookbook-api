@@ -26,3 +26,17 @@ def login():
     response = UserResponseSchema.model_validate(result.user).model_dump(mode="json")
     response["token"] = result.token
     return jsonify(response), 200
+
+## TO-DO
+@auth_bp.post('/refresh-token')
+def refresh_token():
+    return (
+        jsonify(
+            {
+                "error": "not_implemented",
+                "message": "Refresh de token ainda não foi implementado.",
+                "code": "NOT_IMPLEMENTED",
+            }
+        ),
+        501,
+    )

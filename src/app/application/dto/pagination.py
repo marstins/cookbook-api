@@ -6,9 +6,11 @@ from app.domain.models.aggregates.recipe.recipe import RecipePublic
 from app.domain.models.aggregates.draft.draft import DraftPublic
 
 
-class PaginationMetaDTO(BaseModel):
+class PaginationDTO(BaseModel):
     page: int
     per_page: int
+
+class PaginationMetaDTO(PaginationDTO):
     total_items: int = Field(ge=0)
     total_pages: int = Field(ge=0)
 

@@ -48,3 +48,13 @@ class Recipe(RecipeBase):
     original_author_id: str | None = None
     original_author_name: str | None = None
     created_at: datetime
+
+
+class RecipeFilter(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    instructions: str | None = None
+    tags: list[str] = []
+    author_id: list[str] = []
+    get_public: bool | None = None
+    exclude_author_id: list[str] = []

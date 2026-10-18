@@ -25,3 +25,13 @@ class UpdateRecipeDTO(BaseModel):
 class SaveRecipeDTO(BaseModel):
     recipe_id: str
     user_id: str
+
+
+class RecipeFilterDTO(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    instructions: str | None = None
+    tags: list[str] = []
+    author_id: list[str] = []
+    get_public: bool | None = None
+    exclude_author_id: list[str] = []
