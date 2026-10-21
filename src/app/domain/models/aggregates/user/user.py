@@ -9,7 +9,11 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password_hash: str
+    auth_id: str | None = None
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
 
 
 class UserPublic(UserBase):
@@ -19,5 +23,5 @@ class UserPublic(UserBase):
 
 class User(UserBase):
     id: str
-    password_hash: str
     created_at: datetime
+

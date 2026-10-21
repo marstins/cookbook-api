@@ -1,7 +1,8 @@
 from sqlalchemy import select, update
-from sqlalchemy.orm import joinedload, selectinload, Session
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.functions import count
 
+from app.domain.models.aggregates.pagination.pagination import Pagination
 from app.domain.models.aggregates.recipe.recipe import (Recipe, RecipeCreate,
                                                         RecipeUpdate, RecipeFilter)
 from app.infrastructure.persistence.database import db
@@ -22,7 +23,7 @@ class RecipeRepository:
         if filters.instructions:
             filters_to_apply.append(RecipeORM.instructions.like(f"%{filters.instructions}%"))
         if filters.tags:
-            for tag in filters.tags: 
+            for tag in filters.tags:
                 filters_to_apply.append(RecipeORM.tags.contains(tag))
         if filters.author_id:
             filters_to_apply.append(RecipeORM.author_id.in_(filters.author_id))
@@ -40,12 +41,9 @@ class RecipeRepository:
         return self._recipe_mapper.map_from_orm(recipe)
 
     def get_all(
-        self, 
+        self,
         filters: RecipeFilter | None,
-        pagination: {
-            offset: int,
-            per_page: int,
-        },) -> list[Recipe]:
+        pagination: Pagination,) -> list[Recipe]:
         stmt = (
             select(RecipeORM)
             .options(
@@ -58,7 +56,7 @@ class RecipeRepository:
         applied_filters = self.apply_filters(filters)
         stmt = stmt.where(*applied_filters)
         recipes = db.session.scalars(
-            stmt.offset(offset).limit(per_page)
+            stmt.offset(pagination.offset).limit(pagination.per_page)
         ).all()
         return [self._recipe_mapper.map_from_orm(recipe) for recipe in recipes]
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from pydantic.config import ConfigDict
 
 
@@ -20,11 +20,17 @@ class UpdateUserPasswordSchema(BaseModel):
     new_password: str = Field(min_length=8, max_length=30, title='Senha nova do usuário')
 
 
-class UpdateUserNameSchema(BaseModel):
+class UpdateUserSchema(BaseModel):
     model_config = ConfigDict(title='UpdateUserNameSchema')
 
-    email: EmailStr = Field(min_length=5, max_length=30, title='Email do usuário')
-    new_name: str = Field(min_length=5, max_length=20, title='Nome novo do usuário')
+    name: str | None = Field(default=None, min_length=5, max_length=20, title='Nome novo do usuário')
+
+    @model_validator(mode='after')
+    def check_at_least_one_not_none(self) -> 'UpdateUserSchema':
+        if all(value is None for value in self.__dict__.values()):
+            raise ValueError("Pelo menos um campo deve ser informado para alteração")
+            
+        return self
 
 
 class UserResponseSchema(BaseModel):

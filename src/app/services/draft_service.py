@@ -217,4 +217,3 @@ class DraftService:
             items=items,
             pagination=build_pagination_meta(page, per_page, total_items),
         )
-

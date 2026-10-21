@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from app.domain.models.aggregates.user import User, UserCreate
+from app.domain.models.aggregates.user.user import UserUpdate
 from app.infrastructure.persistence.database import db
 from app.infrastructure.persistence.models.user_orm import UserORM
 
@@ -46,25 +47,24 @@ class UserRepository:
         return User.model_validate(user, from_attributes=True)
 
 
-    def update_password(self, user_id: str, password_hash: str) -> User | None:
+    def get_by_auth_id(self, auth_id: str) -> User | None:
+        user = db.session.scalar(
+            select(UserORM).where(UserORM.auth_id == auth_id)
+        )
+        if user is None:
+            return None
+        return User.model_validate(user, from_attributes=True)
+
+
+    def update(self, user_id: str, data: UserUpdate) -> User | None:
         user_orm = db.session.scalar(
             select(UserORM).where(UserORM.id == user_id)
         )
         if user_orm is None:
             return None
-        user_orm.password_hash = password_hash
-        db.session.flush()
-        db.session.refresh(user_orm)
-        return User.model_validate(user_orm, from_attributes=True)
-
-
-    def update_name(self, user_id: str, user_name: str) -> User | None:
-        user_orm = db.session.scalar(
-            select(UserORM).where(UserORM.id == user_id)
-        )
-        if user_orm is None:
-            return None
-        user_orm.name = user_name
+        for key, value in data.model_dump().items():
+            if hasattr(user_orm, key):
+                setattr(user_orm, key, value)
         db.session.flush()
         db.session.refresh(user_orm)
         return User.model_validate(user_orm, from_attributes=True)

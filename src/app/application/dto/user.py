@@ -13,6 +13,5 @@ class UpdateUserPasswordDTO(BaseModel):
     new_password: str
 
 
-class UpdateUserNameDTO(BaseModel):
-    email: EmailStr
-    new_name: str
+class UpdateUserDTO(BaseModel):
+    name: str | None = None

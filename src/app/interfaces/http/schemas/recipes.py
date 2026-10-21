@@ -1,6 +1,7 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 from pydantic.config import ConfigDict
-from typing import Literal
 
 
 RecipeTag = Literal["vegan", "vegetarian", "gluten_free", "lactose_free"]

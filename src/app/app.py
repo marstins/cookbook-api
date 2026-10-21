@@ -18,7 +18,7 @@ from app.infrastructure.persistence.repositories import (DraftRepository,
                                                          IngredientRepository,
                                                          RecipeRepository,
                                                          UserRepository)
-from app.infrastructure.security import AuthTokenHandler, PasswordHasher
+from app.infrastructure.security import Auth0Client, AuthTokenHandler, PasswordHasher
 from app.interfaces.http.blueprints.auth import auth_bp
 from app.interfaces.http.blueprints.recipes import recipes_bp
 from app.interfaces.http.blueprints.users import users_bp
@@ -74,8 +74,12 @@ def handle_unauthorized(error):
     )
 
 password_hasher = PasswordHasher()
-auth_token_handler = AuthTokenHandler(Config.AUTH_KEY)
-auth_middleware = AuthMiddleware(auth_token_handler)
+auth_token_handler = AuthTokenHandler(
+    Config.AUTH0_DOMAIN, Config.AUTH0_AUDIENCE, Config.AUTH0_CLIENT_ID
+)
+auth0_client = Auth0Client(
+    Config.AUTH0_DOMAIN, Config.AUTH0_CLIENT_ID, Config.AUTH0_CLIENT_SECRET, Config.AUTH0_DB_NAME
+)
 recipe_mapper = RecipeMapper()
 recipe_public_mapper = RecipePublicMapper()
 user_public_mapper = UserPublicMapper()
@@ -89,6 +93,8 @@ user_service = UserService(
     user_public_mapper,
     recipe_repository,
     ingredient_repository,
+    auth0_client,
+    auth_token_handler,
 )
 recipe_service = RecipeService(
     recipe_repository,
@@ -97,7 +103,10 @@ recipe_service = RecipeService(
     ingredient_repository,
 )
 auth_service = AuthService(
-    user_repository, password_hasher, user_public_mapper, auth_token_handler
+    user_repository,
+    user_public_mapper,
+    auth0_client,
+    auth_token_handler,
 )
 draft_mapper = DraftMapper()
 draft_repository = DraftRepository(draft_mapper)
@@ -108,6 +117,7 @@ draft_service = DraftService(
     user_repository,
     decode_draft_image_service,
 )
+auth_middleware = AuthMiddleware(auth_token_handler, auth_service)
 
 app.extensions["user_service"] = user_service
 app.extensions["recipe_service"] = recipe_service
@@ -127,7 +137,6 @@ app.register_blueprint(drafts_bp, url_prefix='/drafts')
 
 register_openapi_routes(app)
 app.cli.add_command(seed_command)
-
 
 @app.route("/")
 def home():

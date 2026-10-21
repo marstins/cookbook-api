@@ -1,11 +1,11 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from pydantic import ValidationError
 
-from app.application.dto.user import (CreateUserDTO, UpdateUserNameDTO,
+from app.application.dto.user import (CreateUserDTO, UpdateUserDTO,
                                       UpdateUserPasswordDTO)
-from app.domain.exceptions import ConflictError, NotFoundError
+from app.domain.exceptions import ConflictError, ExternalServiceError, NotFoundError
 
-from ..schemas import (CreateUserSchema, UpdateUserNameSchema,
+from ..schemas import (CreateUserSchema, UpdateUserSchema,
                        UpdateUserPasswordSchema, UserResponseSchema)
 from ..validation import validation_error_response
 
@@ -110,9 +110,11 @@ def get_user_by_id(user_id: str):
     return jsonify(response), 200
 
 
-@users_bp.patch('/<string:user_id>/change-password')
-def update_user_password(user_id: str):
+@users_bp.patch('/change-password')
+def update_user_password():
     data = request.get_json(silent=True) or {}
+    user_id = g.user_id
+    auth_id = g.auth_id
     try:
         validated = UpdateUserPasswordSchema.model_validate(data)
         dto = UpdateUserPasswordDTO.model_validate(validated.model_dump())
@@ -120,10 +122,11 @@ def update_user_password(user_id: str):
         return validation_error_response(e)
 
     try:
-        updated_user = get_user_service().update_password(user_id, dto)
-        response = UserResponseSchema.model_validate(updated_user).model_dump(
-            mode="json"
-        )
+        result = get_user_service().update_password(auth_id, user_id, dto)
+        response = UserResponseSchema.model_validate(result.user).model_dump(mode="json")
+        response["access_token"] = result.access_token
+        response["refresh_token"] = result.refresh_token
+        response["expires_at"] = result.expires_at
     except NotFoundError as e:
         return (
             jsonify(
@@ -146,6 +149,17 @@ def update_user_password(user_id: str):
             ),
             409,
         )
+    except ExternalServiceError as e:
+        return (
+            jsonify(
+                {
+                    "error": "external_service_error",
+                    "message": e.message,
+                    "code": e.code,
+                }
+            ),
+            502,
+        )
     except ValidationError:
         return (
             jsonify(
@@ -161,17 +175,18 @@ def update_user_password(user_id: str):
     return jsonify(response), 200
 
 
-@users_bp.patch('/<string:user_id>/change-name')
-def update_user_name(user_id: str):
+@users_bp.patch('/update')
+def update_user():
     data = request.get_json(silent=True) or {}
+    user_id = g.user_id
     try:
-        validated = UpdateUserNameSchema.model_validate(data)
-        dto = UpdateUserNameDTO.model_validate(validated.model_dump())
+        validated = UpdateUserSchema.model_validate(data)
+        dto = UpdateUserDTO.model_validate(validated.model_dump())
     except ValidationError as e:
         return validation_error_response(e)
 
     try:
-        updated_user = get_user_service().update_name(user_id, dto)
+        updated_user = get_user_service().update(user_id, dto)
         response = UserResponseSchema.model_validate(updated_user).model_dump(
             mode="json"
         )

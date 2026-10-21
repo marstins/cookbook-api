@@ -1,6 +1,6 @@
 from app.interfaces.http.schemas.drafts import (CreateDraftSchema,
                                                 UpdateDraftSchema)
-from app.interfaces.http.schemas.auth import LoginRequestSchema
+from app.interfaces.http.schemas.auth import LoginRequestSchema, RefreshTokenRequestSchema
 from app.interfaces.http.schemas.pagination import (
     PaginatedRecipeListResponseSchema, PaginationResponseSchema,
     PaginationSchema)
@@ -11,14 +11,14 @@ from app.interfaces.http.schemas.recipes import (CreateIngredientSchema,
                                                  UpdateRecipeSchema,
                                                  RecipeFilterSchema)
 from app.interfaces.http.schemas.users import (CreateUserSchema,
-                                               UpdateUserNameSchema,
+                                               UpdateUserSchema,
                                                UpdateUserPasswordSchema,
                                                UserResponseSchema)
 
 __all__ = [
     "CreateUserSchema",
     "UpdateUserPasswordSchema",
-    "UpdateUserNameSchema",
+    "UpdateUserSchema",
     "UserResponseSchema",
     "CreateIngredientSchema",
     "CreateRecipeSchema",
@@ -27,6 +27,7 @@ __all__ = [
     "UpdateRecipeSchema",
     "RecipeFilterSchema",
     "LoginRequestSchema",
+    "RefreshTokenRequestSchema",
     "PaginationSchema",
     "PaginationResponseSchema",
     "PaginatedRecipeListResponseSchema",

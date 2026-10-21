@@ -14,4 +14,3 @@ class UpdateDraftDTO(BaseModel):
     instructions: str | None = None
     ingredients: list[UpdateIngredientDTO]
     tags: list[str]
-

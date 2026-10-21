@@ -7,3 +7,9 @@ class LoginRequestSchema(BaseModel):
 
     email: EmailStr = Field(min_length=5, max_length=30, title='Email do usuário')
     password: str = Field(min_length=8, max_length=30, title='Senha do usuário')
+
+
+class RefreshTokenRequestSchema(BaseModel):
+    model_config = ConfigDict(title='RefreshTokenRequestSchema')
+
+    refresh_token: str = Field(min_length=1, title='Refresh token')

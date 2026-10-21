@@ -1,9 +1,9 @@
 from flask import Blueprint, current_app, jsonify, request
 from pydantic import ValidationError
 
-from app.application.dto.auth import LoginDTO
+from app.application.dto.auth import LoginDTO, RefreshTokenDTO
 
-from ..schemas import LoginRequestSchema, UserResponseSchema
+from ..schemas import LoginRequestSchema, RefreshTokenRequestSchema, UserResponseSchema
 from ..validation import validation_error_response
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -24,19 +24,23 @@ def login():
         return validation_error_response(e)
 
     response = UserResponseSchema.model_validate(result.user).model_dump(mode="json")
-    response["token"] = result.token
+    response["access_token"] = result.access_token
+    response["refresh_token"] = result.refresh_token
+    response["expires_at"] = result.expires_at
     return jsonify(response), 200
 
-## TO-DO
 @auth_bp.post('/refresh-token')
 def refresh_token():
-    return (
-        jsonify(
-            {
-                "error": "not_implemented",
-                "message": "Refresh de token ainda não foi implementado.",
-                "code": "NOT_IMPLEMENTED",
-            }
-        ),
-        501,
-    )
+    data = request.get_json(silent=True) or {}
+    try:
+        validated_refresh = RefreshTokenRequestSchema.model_validate(data)
+        dto = RefreshTokenDTO.model_validate(validated_refresh.model_dump())
+        result = get_auth_service().refresh_token(dto)
+    except ValidationError as e:
+        return validation_error_response(e)
+
+    response = UserResponseSchema.model_validate(result.user).model_dump(mode="json")
+    response["access_token"] = result.access_token
+    response["refresh_token"] = result.refresh_token
+    response["expires_at"] = result.expires_at
+    return jsonify(response), 200

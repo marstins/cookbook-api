@@ -9,8 +9,8 @@ class UserORM(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(255), nullable=False, unique=True)
     email = db.Column(db.String(255), nullable=False, unique=True)
-    password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    auth_id = db.Column(db.String(255), nullable=True)
 
     created_recipes = db.relationship(
         "RecipeORM",

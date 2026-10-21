@@ -1,6 +1,7 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 from pydantic.config import ConfigDict
-from typing import Literal
 
 
 _DATA_URI = (

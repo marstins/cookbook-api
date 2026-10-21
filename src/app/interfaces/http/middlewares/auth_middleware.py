@@ -2,11 +2,13 @@ from flask import g, request
 
 from app.domain.exceptions import UnauthorizedError
 from app.infrastructure.security import AuthTokenHandler
+from app.services.auth_service import AuthService
 
 
 class AuthMiddleware:
-    def __init__(self, auth_token_handler: AuthTokenHandler) -> None:
+    def __init__(self, auth_token_handler: AuthTokenHandler, auth_service: AuthService) -> None:
         self._auth_token_handler = auth_token_handler
+        self._auth_service = auth_service
 
     def validate(self) -> None:
         if request.method == "OPTIONS":
@@ -17,8 +19,10 @@ class AuthMiddleware:
         token = auth_header.split(" ", 1)[1].strip()
         if not token:
             raise UnauthorizedError("Token não encontrado.", code="TOKEN_NOT_FOUND")
-        decoded = self._auth_token_handler.decode_token(token)
-        g.user_id = decoded["sub"]
+        decoded = self._auth_token_handler.decode(token)
+        user = self._auth_service.resolve_current_user(decoded["sub"])
+        g.auth_id = decoded["sub"]
+        g.user_id = user.id
 
     def validate_users(self) -> None:
         if request.endpoint == "users_bp.create_user":

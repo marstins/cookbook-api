@@ -17,7 +17,7 @@ class RecipePublicMapper:
             is_vegetarian='vegetarian' in tags_list,
             is_vegan='vegan' in tags_list,
             is_gluten_free='gluten_free' in tags_list,
-            is_lactose_free='lactose_free' in tags_list,            
+            is_lactose_free='lactose_free' in tags_list,
             author_id=recipe.author_id,
             author_name=recipe.author_name,
             original_recipe_id=recipe.original_recipe_id,
